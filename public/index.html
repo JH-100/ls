@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LikeSlack</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1a1d21">
+  <link rel="icon" href="/assets/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/icon-192.png">
+</head>
+<body>
+  <div id="app" class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>LikeSlack</h2>
+        <button class="icon-btn" id="themeToggle" title="다크/라이트 모드"></button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-header">
+          <span>채널</span>
+          <button class="icon-btn small" id="addChannelBtn" title="채널 추가"></button>
+        </div>
+        <ul id="channelList" class="nav-list"></ul>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-header">
+          <span>다이렉트 메시지</span>
+          <button class="icon-btn small" id="addDmBtn" title="DM 시작"></button>
+        </div>
+        <ul id="dmList" class="nav-list"></ul>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-header"><span>사용자</span></div>
+        <ul id="userList" class="nav-list user-list"></ul>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="current-user" id="currentUser"></div>
+        <button class="icon-btn" id="logoutBtn" title="로그아웃"></button>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main-content">
+      <div class="channel-header" id="channelHeader">
+        <div class="channel-info">
+          <h3 id="channelName">채널을 선택하세요</h3>
+          <span id="channelDesc" class="channel-desc"></span>
+        </div>
+        <div class="channel-actions">
+          <button class="icon-btn" id="inviteBtn" title="멤버 초대"></button>
+          <button class="icon-btn" id="searchToggle" title="검색"></button>
+          <button class="icon-btn" id="membersToggle" title="멤버"></button>
+        </div>
+      </div>
+
+      <!-- Search bar -->
+      <div class="search-bar" id="searchBar" style="display:none">
+        <input type="text" id="searchInput" placeholder="메시지 검색..." />
+        <button class="icon-btn" id="searchClose"></button>
+      </div>
+
+      <!-- Drop overlay -->
+      <div class="drop-overlay" id="dropOverlay" style="display:none">
+        <div class="drop-overlay-inner">
+          <div id="dropIcon"></div>
+          <p>파일을 놓아서 업로드</p>
+        </div>
+      </div>
+
+      <!-- Messages area -->
+      <div class="messages-container" id="messagesContainer">
+        <div class="messages-list" id="messagesList">
+          <div class="empty-state" id="emptyState">
+            <p>채널을 선택하거나 새 채널을 만들어보세요</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Typing indicator -->
+      <div class="typing-indicator" id="typingIndicator" style="display:none">
+        <span id="typingText"></span>
+      </div>
+
+      <!-- Message input -->
+      <div class="message-input-area" id="messageInputArea" style="display:none">
+        <div class="input-row">
+          <label class="icon-btn attach-btn" id="fileUploadBtn" title="파일 첨부">
+            <input type="file" id="fileInput" style="display:none">
+          </label>
+          <textarea id="messageInput" placeholder="메시지를 입력하세요..." rows="1"></textarea>
+          <button class="icon-btn emoji-btn" id="emojiBtn" title="이모지"></button>
+          <button class="send-btn" id="sendBtn"></button>
+        </div>
+        <div class="file-preview" id="filePreview" style="display:none">
+          <div id="filePreviewIcon"></div>
+          <span id="filePreviewName"></span>
+          <button class="icon-btn small" id="filePreviewRemove"></button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Thread panel -->
+    <aside class="thread-panel" id="threadPanel" style="display:none">
+      <div class="thread-header">
+        <h3>스레드</h3>
+        <button class="icon-btn" id="threadClose"></button>
+      </div>
+      <div class="thread-messages" id="threadMessages"></div>
+      <div class="thread-input-area">
+        <textarea id="threadInput" placeholder="답글 입력..." rows="1"></textarea>
+        <button class="send-btn" id="threadSendBtn"></button>
+      </div>
+    </aside>
+
+    <!-- Members panel -->
+    <aside class="members-panel" id="membersPanel" style="display:none">
+      <div class="members-header">
+        <h3>멤버</h3>
+        <button class="icon-btn" id="membersClose"></button>
+      </div>
+      <ul class="members-list" id="membersList"></ul>
+    </aside>
+
+    <!-- Emoji picker -->
+    <div class="emoji-picker" id="emojiPicker" style="display:none">
+      <div class="emoji-grid" id="emojiGrid"></div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="modalOverlay" style="display:none">
+      <div class="modal" id="modal">
+        <div class="modal-header">
+          <h3 id="modalTitle"></h3>
+          <button class="icon-btn" id="modalClose"></button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/icons.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/emoji.js"></script>
+  <script src="/js/socket.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+</body>
+</html>

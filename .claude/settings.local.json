@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test:*)",
+      "Bash(npx husky:*)",
+      "Bash(gh auth:*)",
+      "Bash(grep -n \"req.params\\\\|req.query\\\\|req.body\" /c/ceJava/htdocs/likeSlack/src/routes/*.js)",
+      "Bash(grep -n \"admin\\\\|role\\\\|permission\\\\|privilege\" /c/ceJava/htdocs/likeSlack/src/routes/*.js /c/ceJava/htdocs/likeSlack/src/socket/*.js)",
+      "Bash(grep -n \"path\\\\.\\\\|readFile\\\\|fs\\\\.\" /c/ceJava/htdocs/likeSlack/src/routes/*.js /c/ceJava/htdocs/likeSlack/server.js)",
+      "Bash(node -e \"const os=require\\(''os''\\);const i=os.networkInterfaces\\(\\);for\\(const n of Object.keys\\(i\\)\\){for\\(const f of i[n]\\){if\\(f.family===''IPv4''&&!f.internal\\)console.log\\(n+'': ''+f.address\\)}}\")",
+      "Bash(ipconfig)",
+      "Bash(pm2 stop:*)",
+      "Bash(pm2 restart:*)",
+      "Bash(pm2 logs:*)",
+      "Bash(npm install:*)",
+      "Bash(node -e \":*)",
+      "Bash(npm uninstall:*)",
+      "Bash(curl -s -c /tmp/ck.txt -X POST http://localhost:3333/api/auth/register -H \"Content-Type: application/json\" -d '{\"\"\"\"username\"\"\"\":\"\"\"\"debuguser\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"1234\"\"\"\"}')",
+      "Bash(curl -s -b /tmp/ck.txt http://localhost:3333/api/channels)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s -b /tmp/ck.txt \"http://localhost:3333/api/messages/3f7fe827-9f0c-4af2-94ae-c305d8832c0d\")"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "TodoWrite",
+      "Agent",
+      "WebFetch",
+      "WebSearch",
+      "AskUserQuestion",
+      "Skill",
+      "mcp__Claude_Preview__*"
+    ]
+  }
+}
