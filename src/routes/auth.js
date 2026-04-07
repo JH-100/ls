@@ -90,7 +90,7 @@ router.post('/logout', requireAuth, (req, res) => {
 
 router.get('/me', requireAuth, (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT id, username, display_name, avatar_color, status FROM users WHERE id = ?').get(req.session.userId);
+  const user = db.prepare('SELECT id, username, display_name, avatar_color, avatar_url, status FROM users WHERE id = ?').get(req.session.userId);
   if (!user) {
     return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
   }
@@ -99,13 +99,14 @@ router.get('/me', requireAuth, (req, res) => {
     username: user.username,
     displayName: user.display_name,
     avatarColor: user.avatar_color,
+    avatarUrl: user.avatar_url,
     status: user.status,
   });
 });
 
-// Update profile (display name, avatar color)
+// Update profile (display name, avatar color, avatar url)
 router.put('/profile', requireAuth, (req, res) => {
-  const { displayName, avatarColor } = req.body;
+  const { displayName, avatarColor, avatarUrl } = req.body;
   const db = getDb();
 
   if (displayName && displayName.trim().length > 0) {
@@ -114,15 +115,46 @@ router.put('/profile', requireAuth, (req, res) => {
   if (avatarColor && /^#[0-9a-fA-F]{6}$/.test(avatarColor)) {
     db.prepare('UPDATE users SET avatar_color = ? WHERE id = ?').run(avatarColor, req.session.userId);
   }
+  if (avatarUrl !== undefined) {
+    db.prepare('UPDATE users SET avatar_url = ? WHERE id = ?').run(avatarUrl || null, req.session.userId);
+  }
 
-  const user = db.prepare('SELECT id, username, display_name, avatar_color, status FROM users WHERE id = ?').get(req.session.userId);
+  const user = db.prepare('SELECT id, username, display_name, avatar_color, avatar_url, status FROM users WHERE id = ?').get(req.session.userId);
   res.json({
     id: user.id,
     username: user.username,
     displayName: user.display_name,
     avatarColor: user.avatar_color,
+    avatarUrl: user.avatar_url,
     status: user.status,
   });
+});
+
+// Upload avatar image (resize to 128x128)
+const multer = require('multer');
+const sharp = require('sharp');
+const path = require('path');
+const fs = require('fs');
+
+const avatarUpload = multer({ limits: { fileSize: 5 * 1024 * 1024 }, storage: multer.memoryStorage() });
+
+router.post('/avatar', requireAuth, avatarUpload.single('avatar'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '이미지를 선택해주세요' });
+  if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: '이미지 파일만 가능합니다' });
+
+  const filename = `avatar-${req.session.userId}.png`;
+  const outPath = path.join(__dirname, '..', '..', 'uploads', filename);
+
+  await sharp(req.file.buffer)
+    .resize(128, 128, { fit: 'cover' })
+    .png()
+    .toFile(outPath);
+
+  const avatarUrl = `/uploads/${filename}`;
+  const db = getDb();
+  db.prepare('UPDATE users SET avatar_url = ? WHERE id = ?').run(avatarUrl, req.session.userId);
+
+  res.json({ avatarUrl });
 });
 
 module.exports = router;

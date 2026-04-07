@@ -145,6 +145,8 @@ body {
   color: var(--text-bright);
 }
 
+.nav-list li:hover .icon-btn.small { opacity: 1 !important; }
+
 .nav-list li .badge {
   background: var(--danger);
   color: #fff;

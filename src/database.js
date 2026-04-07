@@ -25,6 +25,7 @@ function initializeDatabase() {
       password_hash TEXT NOT NULL,
       display_name TEXT NOT NULL,
       avatar_color TEXT DEFAULT '#4A90D9',
+      avatar_url TEXT DEFAULT NULL,
       status TEXT DEFAULT 'online',
       last_seen TEXT DEFAULT (datetime('now')),
       created_at TEXT DEFAULT (datetime('now'))
@@ -96,6 +97,13 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
     CREATE INDEX IF NOT EXISTS idx_channel_members_user ON channel_members(user_id);
   `);
+
+  // Migration: add avatar_url column if not exists
+  try {
+    db.prepare('SELECT avatar_url FROM users LIMIT 1').get();
+  } catch {
+    db.exec('ALTER TABLE users ADD COLUMN avatar_url TEXT DEFAULT NULL');
+  }
 
   // Create default #general channel if not exists
   const general = db.prepare('SELECT id FROM channels WHERE name = ?').get('general');

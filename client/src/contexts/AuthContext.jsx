@@ -55,13 +55,13 @@ export function AuthProvider({ children }) {
     navigate('/login');
   }, [clearCredentials, navigate]);
 
-  const updateProfile = useCallback(async (displayName, avatarColor) => {
+  const updateProfile = useCallback(async (displayName, avatarColor, avatarUrl) => {
     const data = await apiCall('/api/auth/profile', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ displayName, avatarColor }),
+      body: JSON.stringify({ displayName, avatarColor, avatarUrl }),
     });
-    setCurrentUser((prev) => prev ? { ...prev, displayName, avatarColor } : prev);
+    setCurrentUser(data);
     return data;
   }, []);
 
