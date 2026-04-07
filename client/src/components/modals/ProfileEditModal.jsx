@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import Modal from '../common/Modal';
-import { PlusIcon, UploadIcon } from '../icons';
+import { PlusIcon } from '../icons';
 
 const PRESET_COLORS = [
   '#E74C3C', '#3498DB', '#2ECC71', '#F39C12', '#9B59B6', '#1ABC9C',
@@ -14,7 +14,6 @@ export default function ProfileEditModal({ onClose }) {
   const [selectedColor, setSelectedColor] = useState(currentUser?.avatarColor || currentUser?.avatar_color || PRESET_COLORS[0]);
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl || currentUser?.avatar_url || null);
   const [uploading, setUploading] = useState(false);
-  const colorInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
   const handleImageUpload = async (e) => {
@@ -121,21 +120,24 @@ export default function ProfileEditModal({ onClose }) {
                 }}
               />
             ))}
-            <button
-              type="button"
-              onClick={() => colorInputRef.current?.click()}
+            <label
               style={{
-                width: 36, height: 36, borderRadius: 8,
+                width: 36, height: 36, borderRadius: 8, position: 'relative',
                 border: !PRESET_COLORS.includes(selectedColor) ? '3px solid #fff' : '1px dashed var(--text-secondary)',
                 background: !PRESET_COLORS.includes(selectedColor) ? selectedColor : 'var(--bg-tertiary)',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--text-secondary)',
+                color: 'var(--text-secondary)', overflow: 'hidden',
               }}
               title="커스텀 색상"
             >
               <PlusIcon size={14} />
-            </button>
-            <input ref={colorInputRef} type="color" value={selectedColor} onChange={e => setSelectedColor(e.target.value)} style={{ display: 'none' }} />
+              <input
+                type="color"
+                value={selectedColor}
+                onChange={e => setSelectedColor(e.target.value)}
+                style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
+              />
+            </label>
           </div>
         </div>
       )}

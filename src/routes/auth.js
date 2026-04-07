@@ -138,23 +138,31 @@ const fs = require('fs');
 
 const avatarUpload = multer({ limits: { fileSize: 5 * 1024 * 1024 }, storage: multer.memoryStorage() });
 
-router.post('/avatar', requireAuth, avatarUpload.single('avatar'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: '이미지를 선택해주세요' });
-  if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: '이미지 파일만 가능합니다' });
+router.post('/avatar', requireAuth, (req, res) => {
+  avatarUpload.single('avatar')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!req.file) return res.status(400).json({ error: '이미지를 선택해주세요' });
+    if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: '이미지 파일만 가능합니다' });
 
-  const filename = `avatar-${req.session.userId}.png`;
-  const outPath = path.join(__dirname, '..', '..', 'uploads', filename);
+    try {
+      const filename = `avatar-${req.session.userId}.png`;
+      const outPath = path.join(__dirname, '..', '..', 'uploads', filename);
 
-  await sharp(req.file.buffer)
-    .resize(128, 128, { fit: 'cover' })
-    .png()
-    .toFile(outPath);
+      await sharp(req.file.buffer)
+        .resize(128, 128, { fit: 'cover' })
+        .png()
+        .toFile(outPath);
 
-  const avatarUrl = `/uploads/${filename}`;
-  const db = getDb();
-  db.prepare('UPDATE users SET avatar_url = ? WHERE id = ?').run(avatarUrl, req.session.userId);
+      const avatarUrl = `/uploads/${filename}`;
+      const db = getDb();
+      db.prepare('UPDATE users SET avatar_url = ? WHERE id = ?').run(avatarUrl, req.session.userId);
 
-  res.json({ avatarUrl });
+      res.json({ avatarUrl });
+    } catch (e) {
+      console.error('Avatar upload error:', e);
+      res.status(500).json({ error: '이미지 처리에 실패했습니다' });
+    }
+  });
 });
 
 module.exports = router;
