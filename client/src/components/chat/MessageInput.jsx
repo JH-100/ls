@@ -77,7 +77,7 @@ export default function MessageInput({ channelId }) {
   }, [content, pendingFile, channelId, sendMessage]);
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleSend();
     }

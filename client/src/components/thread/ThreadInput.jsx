@@ -15,7 +15,7 @@ export default function ThreadInput({ parentId }) {
 
   const handleKeyDown = useCallback(
     (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+      if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
         e.preventDefault();
         handleSend();
       }

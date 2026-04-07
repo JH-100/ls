@@ -66,7 +66,7 @@ export default function MessageItem({ msg, currentUserId }) {
               value={editContent}
               onChange={e => setEditContent(e.target.value)}
               onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleEditSave(); }
+                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); handleEditSave(); }
                 if (e.key === 'Escape') setIsEditing(false);
               }}
               autoFocus
