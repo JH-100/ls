@@ -44,10 +44,22 @@ export default function ProfileEditModal({ onClose }) {
     if (!displayName.trim()) return;
     setSaving(true);
     try {
-      await updateProfile(displayName.trim(), selectedColor, avatarUrl);
+      // If avatar was uploaded, it's already saved on server
+      // Only send avatarUrl if it was removed (null) or unchanged
+      const body = { displayName: displayName.trim(), avatarColor: selectedColor };
+      if (avatarUrl === null && (currentUser?.avatarUrl || currentUser?.avatar_url)) {
+        body.avatarUrl = null; // explicitly remove
+      }
+      await updateProfile(body.displayName, body.avatarColor, body.avatarUrl);
       onClose();
     } catch (err) {
-      alert(err.message);
+      if (err.message.includes('로그인')) {
+        // Session expired during save — just close and let auto-login handle it
+        onClose();
+        window.location.reload();
+      } else {
+        alert(err.message);
+      }
     } finally {
       setSaving(false);
     }

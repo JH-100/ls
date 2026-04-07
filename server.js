@@ -40,7 +40,8 @@ app.use((req, res, next) => {
 });
 
 // Session middleware (cryptographically secure secret)
-const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+// Fixed session secret so sessions survive server restarts
+const SESSION_SECRET = process.env.SESSION_SECRET || 'likeslack-local-session-secret-do-not-use-in-production';
 const sessionMiddleware = session({
   secret: SESSION_SECRET,
   resave: false,

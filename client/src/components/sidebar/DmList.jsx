@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChannels } from '../../contexts/ChannelContext';
 import { UsersIcon, XIcon } from '../icons';
