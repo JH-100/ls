@@ -42,7 +42,7 @@ export default function NotificationBanner() {
     <div className="notification-banner">
       {isDenied ? (
         <>
-          <span>알림이 차단되어 있습니다. 브라우저 설정에서 이 사이트의 알림을 허용해주세요.</span>
+          <span>알림이 차단되어 있습니다. 주소창에 <b>edge://settings/content/notifications</b> 입력 → 허용에 이 사이트 추가 후 새로고침</span>
           <button className="btn btn-dismiss" onClick={handleDismiss}>닫기</button>
         </>
       ) : (
