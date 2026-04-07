@@ -8,7 +8,7 @@ export function ChannelProvider({ children }) {
   const [channels, setChannels] = useState([]);
   const [activeChannelId, setActiveChannelId] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
-  const { socketRef, joinChannel, getUsers } = useSocket();
+  const { socketRef, connected, joinChannel, getUsers } = useSocket();
 
   const loadChannels = useCallback(async (keepActive = true) => {
     try {
@@ -108,7 +108,7 @@ export function ChannelProvider({ children }) {
       socket.off('unread-update', handleUnreadUpdate);
       socket.off('channel-read', handleChannelRead);
     };
-  }, [socketRef, loadChannels]);
+  }, [connected, loadChannels]);
 
   const value = {
     channels,

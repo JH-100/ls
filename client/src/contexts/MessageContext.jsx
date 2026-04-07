@@ -10,7 +10,7 @@ export function MessageProvider({ children }) {
   const [lastReadAt, setLastReadAt] = useState(null);
   const [activeThreadId, setActiveThreadId] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
-  const { socketRef } = useSocket();
+  const { socketRef, connected } = useSocket();
   const activeChannelRef = useRef(null);
 
   const loadMessages = useCallback(async (channelId) => {
@@ -132,7 +132,7 @@ export function MessageProvider({ children }) {
       socket.off('thread-update', handleThreadUpdate);
       socket.off('channel-read', handleChannelRead);
     };
-  }, [socketRef, activeThreadId]);
+  }, [connected, activeThreadId]);
 
   const value = {
     messages,

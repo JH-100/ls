@@ -19,33 +19,31 @@ export default function Sidebar({ onCreateChannel, onStartDm, onProfileEdit }) {
         </button>
       </div>
 
-      <div className="sidebar-content">
-        <div className="sidebar-section">
-          <div className="sidebar-section-header">
-            <span>채널</span>
-            <button className="icon-btn" onClick={onCreateChannel} title="채널 만들기">
-              <PlusIcon size={16} />
-            </button>
-          </div>
-          <ChannelList />
+      <div className="sidebar-section">
+        <div className="section-header">
+          <span>채널</span>
+          <button className="icon-btn small" onClick={onCreateChannel} title="채널 만들기">
+            <PlusIcon size={16} />
+          </button>
         </div>
+        <ChannelList />
+      </div>
 
-        <div className="sidebar-section">
-          <div className="sidebar-section-header">
-            <span>다이렉트 메시지</span>
-            <button className="icon-btn" onClick={onStartDm} title="새 메시지">
-              <PlusIcon size={16} />
-            </button>
-          </div>
-          <DmList />
+      <div className="sidebar-section">
+        <div className="section-header">
+          <span>다이렉트 메시지</span>
+          <button className="icon-btn small" onClick={onStartDm} title="새 메시지">
+            <PlusIcon size={16} />
+          </button>
         </div>
+        <DmList />
+      </div>
 
-        <div className="sidebar-section">
-          <div className="sidebar-section-header">
-            <span>사용자</span>
-          </div>
-          <UserList />
+      <div className="sidebar-section">
+        <div className="section-header">
+          <span>사용자</span>
         </div>
+        <UserList />
       </div>
 
       <SidebarFooter onProfileEdit={onProfileEdit} />

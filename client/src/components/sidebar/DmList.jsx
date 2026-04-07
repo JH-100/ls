@@ -4,27 +4,25 @@ import StatusDot from '../common/StatusDot';
 import Badge from '../common/Badge';
 
 export default function DmList() {
-  const { channels, currentChannel, selectChannel } = useChannels();
-
-  const dmItems = channels.filter((ch) => ch.is_dm === 1 || ch.is_dm === 2);
+  const { channels, activeChannelId, selectChannel } = useChannels();
 
   return (
-    <ul className="channel-list">
-      {dmItems.map((ch) => (
+    <ul className="nav-list">
+      {channels.filter(ch => ch.is_dm === 1 || ch.is_dm === 2).map(ch => (
         <li
           key={ch.id}
-          className={`channel-item ${currentChannel?.id === ch.id ? 'active' : ''}`}
+          className={activeChannelId === ch.id ? 'active' : ''}
           onClick={() => selectChannel(ch.id)}
         >
           {ch.is_dm === 1 ? (
             <>
-              <StatusDot status={ch.status} />
-              <span className="channel-name">{ch.display_name}</span>
+              <StatusDot status={ch.dmUser?.status} />
+              {ch.dmUser?.display_name || 'Unknown'}
             </>
           ) : (
             <>
-              <UsersIcon size={16} />
-              <span className="channel-name">{ch.name}</span>
+              <span className="channel-icon"><UsersIcon size={18} /></span>
+              {ch.name}
             </>
           )}
           <Badge count={ch.unread_count} />

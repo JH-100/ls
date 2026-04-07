@@ -24,9 +24,8 @@ export default function ThreadInput({ parentId }) {
   );
 
   return (
-    <div className="thread-input">
+    <div className="thread-input-area">
       <textarea
-        className="message-input"
         value={content}
         onChange={(e) => setContent(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -34,7 +33,7 @@ export default function ThreadInput({ parentId }) {
         rows={1}
       />
       <button
-        className="icon-btn send-btn"
+        className="send-btn"
         onClick={handleSend}
         disabled={!content.trim()}
         title="전송"

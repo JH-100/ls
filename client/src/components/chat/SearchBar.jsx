@@ -36,30 +36,23 @@ export default function SearchBar({ onClose }) {
 
   return (
     <div className="search-bar">
-      <div className="search-input-row">
-        <SearchIcon size={16} />
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={handleChange}
-          placeholder="메시지 검색..."
-          className="search-input"
-        />
-        <button className="icon-btn" onClick={onClose}>
-          <XIcon size={16} />
-        </button>
-      </div>
+      <input
+        ref={inputRef}
+        type="text"
+        value={query}
+        onChange={handleChange}
+        placeholder="메시지 검색..."
+      />
+      <button className="icon-btn" onClick={onClose}>
+        <XIcon size={16} />
+      </button>
       {results.length > 0 && (
-        <div className="search-results">
+        <div>
           {results.map((r) => (
-            <div key={r.id} className="search-result-item">
-              <div className="search-result-meta">
-                <span className="search-result-channel">#{r.channel_name}</span>
-                <span className="search-result-author">{r.display_name}</span>
-              </div>
+            <div key={r.id} className="search-result">
+              <span className="channel-tag">#{r.channel_name}</span>
+              {' '}<span>{r.display_name}</span>
               <div
-                className="search-result-content"
                 dangerouslySetInnerHTML={{
                   __html: highlightQuery(r.content, query),
                 }}
@@ -77,6 +70,6 @@ function highlightQuery(text, query) {
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return text.replace(
     new RegExp(`(${escaped})`, 'gi'),
-    '<mark>$1</mark>'
+    '<span class="highlight">$1</span>'
   );
 }

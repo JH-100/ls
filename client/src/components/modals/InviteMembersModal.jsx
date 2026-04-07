@@ -6,86 +6,69 @@ import Modal from '../common/Modal';
 
 export default function InviteMembersModal({ channelId, onClose }) {
   const { currentUser } = useAuth();
-  const { allUsers, inviteToChannel } = useChannels();
+  const { allUsers, inviteToChannel, loadChannels } = useChannels();
   const [members, setMembers] = useState([]);
   const [selected, setSelected] = useState([]);
-  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchMembers = async () => {
-      try {
-        const data = await apiCall(`/api/channels/${channelId}/members`);
-        setMembers(data.map((m) => m.id));
-      } catch {
-        setMembers([]);
-      }
-    };
-    fetchMembers();
+    apiCall(`/api/channels/${channelId}/members`)
+      .then(data => setMembers(data.map(m => m.id)))
+      .catch(() => {});
   }, [channelId]);
 
   const nonMembers = useMemo(
-    () => allUsers.filter((u) => !members.includes(u.id) && u.id !== currentUser?.id),
+    () => allUsers.filter(u => !members.includes(u.id) && u.id !== currentUser?.id),
     [allUsers, members, currentUser?.id]
   );
 
-  const toggleUser = useCallback((userId) => {
-    setSelected((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
-    );
-  }, []);
+  const toggle = (id) => {
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
 
-  const handleSubmit = useCallback(
-    async (e) => {
-      e.preventDefault();
-      if (selected.length === 0) {
-        setError('초대할 사용자를 선택하세요');
-        return;
-      }
-      try {
-        for (const userId of selected) {
-          await inviteToChannel(channelId, userId);
-        }
-        onClose();
-      } catch (err) {
-        setError(err.message || '초대에 실패했습니다');
-      }
-    },
-    [selected, channelId, inviteToChannel, onClose]
-  );
+  const handleInvite = async () => {
+    for (const userId of selected) {
+      await inviteToChannel(channelId, userId).catch(() => {});
+    }
+    await loadChannels(true);
+    onClose();
+  };
 
   return (
     <Modal title="멤버 초대" onClose={onClose}>
-      <form onSubmit={handleSubmit}>
-        {error && <div className="error-message">{error}</div>}
-        {nonMembers.length === 0 ? (
-          <p>초대할 수 있는 사용자가 없습니다</p>
-        ) : (
-          <div className="form-group user-checkbox-list">
-            {nonMembers.map((user) => (
-              <label key={user.id} className="checkbox-item">
+      {nonMembers.length === 0 ? (
+        <p style={{ color: 'var(--text-secondary)', padding: '8px 0' }}>초대할 수 있는 사용자가 없습니다 (모두 참가 중)</p>
+      ) : (
+        <div className="form-group">
+          <label>초대할 사용자 선택</label>
+          <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+            {nonMembers.map(u => (
+              <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px', cursor: 'pointer', borderRadius: 6 }}>
                 <input
                   type="checkbox"
-                  checked={selected.includes(user.id)}
-                  onChange={() => toggleUser(user.id)}
+                  checked={selected.includes(u.id)}
+                  onChange={() => toggle(u.id)}
                 />
-                <span>{user.display_name}</span>
+                <span style={{ fontSize: 15 }}>{u.display_name} <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>@{u.username}</span></span>
               </label>
             ))}
           </div>
-        )}
-        <div className="modal-actions">
-          <button type="button" className="btn" onClick={onClose}>
-            취소
-          </button>
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={selected.length === 0}
-          >
-            초대
-          </button>
         </div>
-      </form>
+      )}
+      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+        <button
+          onClick={onClose}
+          style={{ flex: 1, padding: 10, border: '1px solid var(--border-color)', borderRadius: 8, background: 'var(--bg-tertiary)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+        >
+          취소
+        </button>
+        <button
+          onClick={handleInvite}
+          disabled={selected.length === 0}
+          style={{ flex: 1, padding: 10, border: 'none', borderRadius: 8, background: selected.length > 0 ? 'var(--accent)' : 'var(--bg-hover)', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+        >
+          초대
+        </button>
+      </div>
     </Modal>
   );
 }

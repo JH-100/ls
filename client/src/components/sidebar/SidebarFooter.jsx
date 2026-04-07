@@ -7,15 +7,14 @@ export default function SidebarFooter({ onProfileEdit }) {
 
   if (!currentUser) return null;
 
+  const name = currentUser.displayName || currentUser.display_name || currentUser.username;
+  const color = currentUser.avatarColor || currentUser.avatar_color;
+
   return (
     <div className="sidebar-footer">
-      <div className="sidebar-footer-user" onClick={onProfileEdit}>
-        <Avatar
-          name={currentUser.display_name}
-          color={currentUser.avatar_color}
-          size={32}
-        />
-        <span className="sidebar-footer-name">{currentUser.display_name}</span>
+      <div className="current-user" onClick={onProfileEdit}>
+        <Avatar name={name} color={color} size={32} />
+        <span>{name}</span>
       </div>
       <button className="icon-btn" onClick={logout} title="로그아웃">
         <LogOutIcon size={18} />

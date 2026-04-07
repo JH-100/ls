@@ -3,20 +3,18 @@ import { HashIcon } from '../icons';
 import Badge from '../common/Badge';
 
 export default function ChannelList() {
-  const { channels, currentChannel, selectChannel } = useChannels();
-
-  const channelItems = channels.filter((ch) => ch.is_dm === 0);
+  const { channels, activeChannelId, selectChannel } = useChannels();
 
   return (
-    <ul className="channel-list">
-      {channelItems.map((ch) => (
+    <ul className="nav-list">
+      {channels.filter(ch => ch.is_dm === 0).map(ch => (
         <li
           key={ch.id}
-          className={`channel-item ${currentChannel?.id === ch.id ? 'active' : ''}`}
+          className={activeChannelId === ch.id ? 'active' : ''}
           onClick={() => selectChannel(ch.id)}
         >
-          <HashIcon size={16} />
-          <span className="channel-name">{ch.name}</span>
+          <span className="channel-icon"><HashIcon size={18} /></span>
+          {ch.name}
           <Badge count={ch.unread_count} />
         </li>
       ))}

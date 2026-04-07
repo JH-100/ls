@@ -31,14 +31,15 @@ export default function ReactionList({ reactions, messageId, currentUserId }) {
   if (grouped.length === 0) return null;
 
   return (
-    <div className="reaction-list">
+    <div className="message-reactions">
       {grouped.map((r) => (
         <button
           key={r.emoji}
-          className={`reaction-btn ${r.mine ? 'mine' : ''}`}
+          className={`reaction ${r.mine ? 'mine' : ''}`}
           onClick={() => handleToggle(r.emoji)}
         >
-          {r.emoji} {r.count}
+          <span className="emoji">{r.emoji}</span>
+          <span className="count">{r.count}</span>
         </button>
       ))}
     </div>

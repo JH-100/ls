@@ -48,6 +48,11 @@ function setupChatHandlers(io, socket, userId) {
 
     message.reactions = [];
 
+    // Sender is viewing this channel — update their last_read_at
+    db.prepare('UPDATE channel_members SET last_read_at = datetime(?) WHERE channel_id = ? AND user_id = ?').run(
+      'now', channelId, userId
+    );
+
     // Emit to channel
     const room = parentId ? `thread:${parentId}` : `channel:${channelId}`;
     io.to(`channel:${channelId}`).emit('new-message', message);

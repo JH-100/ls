@@ -31,14 +31,14 @@ export default function MembersPanel({ channelId, onClose }) {
       </div>
       <ul className="members-list">
         {members.map((member) => (
-          <li key={member.id} className="member-item">
+          <li key={member.id}>
             <Avatar
               name={member.display_name}
               color={member.avatar_color}
               size={32}
             />
             <StatusDot status={member.status} />
-            <span className="member-name">{member.display_name}</span>
+            <span>{member.display_name}</span>
           </li>
         ))}
       </ul>

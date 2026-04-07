@@ -1,16 +1,18 @@
-import React, { createContext, useContext, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useCallback, useState } from 'react';
 import { io } from 'socket.io-client';
 
 const SocketContext = createContext(null);
 
 export function SocketProvider({ user, children }) {
   const socketRef = useRef(null);
+  const [connected, setConnected] = useState(false);
 
   useEffect(() => {
     if (!user) {
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
+        setConnected(false);
       }
       return;
     }
@@ -20,71 +22,68 @@ export function SocketProvider({ user, children }) {
 
     socket.on('connect', () => {
       console.log('[Socket] Connected');
+      setConnected(true);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('[Socket] Disconnected');
+      setConnected(false);
     });
 
     return () => {
       socket.disconnect();
       socketRef.current = null;
+      setConnected(false);
     };
   }, [user]);
 
   const joinChannel = useCallback((channelId) => {
-    if (socketRef.current) {
-      socketRef.current.emit('join-channel', channelId);
-    }
+    socketRef.current?.emit('join-channel', channelId);
   }, []);
 
   const leaveChannel = useCallback((channelId) => {
-    if (socketRef.current) {
-      socketRef.current.emit('leave-channel', channelId);
-    }
+    socketRef.current?.emit('leave-channel', channelId);
   }, []);
 
   const sendMessage = useCallback((data, callback) => {
-    if (socketRef.current) {
-      socketRef.current.emit('send-message', data, callback);
-    }
+    socketRef.current?.emit('send-message', data, callback);
   }, []);
 
-  const editMessage = useCallback((data) => {
-    if (socketRef.current) {
-      socketRef.current.emit('edit-message', data);
-    }
+  const editMessage = useCallback((data, callback) => {
+    socketRef.current?.emit('edit-message', data, callback);
   }, []);
 
-  const deleteMessage = useCallback((data) => {
-    if (socketRef.current) {
-      socketRef.current.emit('delete-message', data);
-    }
+  const deleteMessage = useCallback((data, callback) => {
+    socketRef.current?.emit('delete-message', data, callback);
   }, []);
 
-  const addReaction = useCallback((data) => {
-    if (socketRef.current) {
-      socketRef.current.emit('add-reaction', data);
-    }
+  const addReaction = useCallback((data, callback) => {
+    socketRef.current?.emit('add-reaction', data, callback);
   }, []);
 
-  const sendTyping = useCallback((data) => {
-    if (socketRef.current) {
-      socketRef.current.emit('typing', data);
-    }
+  const sendTyping = useCallback((channelId) => {
+    socketRef.current?.emit('typing', { channelId });
   }, []);
 
   const markRead = useCallback((data) => {
-    if (socketRef.current) {
-      socketRef.current.emit('mark-read', data);
-    }
+    socketRef.current?.emit('mark-read', data);
   }, []);
 
   const getUsers = useCallback((callback) => {
-    if (socketRef.current) {
-      socketRef.current.emit('get-users', callback);
-    }
+    socketRef.current?.emit('get-users', callback);
+  }, []);
+
+  // Helper: subscribe to a socket event (returns unsubscribe fn)
+  const on = useCallback((event, handler) => {
+    socketRef.current?.on(event, handler);
+    return () => socketRef.current?.off(event, handler);
   }, []);
 
   const value = {
     socket: socketRef.current,
     socketRef,
+    connected,
+    on,
     joinChannel,
     leaveChannel,
     sendMessage,

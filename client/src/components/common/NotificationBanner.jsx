@@ -34,7 +34,7 @@ export default function NotificationBanner() {
       <button className="btn btn-primary" onClick={handleAllow}>
         허용
       </button>
-      <button className="btn" onClick={handleDismiss}>
+      <button className="btn btn-dismiss" onClick={handleDismiss}>
         나중에
       </button>
     </div>

@@ -9,9 +9,12 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const encodeToken = (str) => btoa(unescape(encodeURIComponent(str)));
+  const decodeToken = (str) => decodeURIComponent(escape(atob(str)));
+
   const saveCredentials = useCallback((username, password) => {
     localStorage.setItem('likeslack-user', username);
-    localStorage.setItem('likeslack-token', btoa(username + ':' + password));
+    localStorage.setItem('likeslack-token', encodeToken(username + ':' + password));
   }, []);
 
   const clearCredentials = useCallback(() => {
@@ -26,8 +29,8 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ username, password }),
     });
     saveCredentials(username, password);
-    setCurrentUser(data.user);
-    return data.user;
+    setCurrentUser(data);
+    return data;
   }, [saveCredentials]);
 
   const register = useCallback(async (username, password, displayName) => {
@@ -37,8 +40,8 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ username, password, displayName }),
     });
     saveCredentials(username, password);
-    setCurrentUser(data.user);
-    return data.user;
+    setCurrentUser(data);
+    return data;
   }, [saveCredentials]);
 
   const logout = useCallback(async () => {
@@ -66,7 +69,7 @@ export function AuthProvider({ children }) {
     const tryAutoLogin = async () => {
       try {
         const data = await apiCall('/api/auth/me');
-        setCurrentUser(data.user);
+        setCurrentUser(data);
         setLoading(false);
         return;
       } catch {
@@ -77,7 +80,7 @@ export function AuthProvider({ children }) {
       const savedToken = localStorage.getItem('likeslack-token');
       if (savedUsername && savedToken) {
         try {
-          const decoded = atob(savedToken);
+          const decoded = decodeToken(savedToken);
           const separatorIndex = decoded.indexOf(':');
           if (separatorIndex > 0) {
             const username = decoded.substring(0, separatorIndex);
@@ -87,7 +90,7 @@ export function AuthProvider({ children }) {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ username, password }),
             });
-            setCurrentUser(data.user);
+            setCurrentUser(data);
             setLoading(false);
             return;
           }

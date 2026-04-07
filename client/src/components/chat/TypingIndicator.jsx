@@ -1,61 +1,50 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSocket } from '../../contexts/SocketContext';
-import { useChannels } from '../../contexts/ChannelContext';
 import { useAuth } from '../../contexts/AuthContext';
 
-export default function TypingIndicator() {
+export default function TypingIndicator({ channelId }) {
   const [typers, setTypers] = useState({});
-  const socket = useSocket();
-  const { currentChannel } = useChannels();
+  const { socketRef, connected } = useSocket();
   const { currentUser } = useAuth();
   const timersRef = useRef({});
 
-  const handleTyping = useCallback(
-    ({ userId, userName, channelId }) => {
-      if (channelId !== currentChannel?.id) return;
-      if (userId === currentUser?.id) return;
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
 
-      setTypers((prev) => ({ ...prev, [userId]: userName }));
+    const handler = (data) => {
+      if (data.channelId !== channelId) return;
+      if (data.userId === currentUser?.id) return;
 
-      // Clear previous timer
-      if (timersRef.current[userId]) {
-        clearTimeout(timersRef.current[userId]);
-      }
+      setTypers(prev => ({ ...prev, [data.userId]: data.displayName }));
 
-      timersRef.current[userId] = setTimeout(() => {
-        setTypers((prev) => {
+      if (timersRef.current[data.userId]) clearTimeout(timersRef.current[data.userId]);
+      timersRef.current[data.userId] = setTimeout(() => {
+        setTypers(prev => {
           const next = { ...prev };
-          delete next[userId];
+          delete next[data.userId];
           return next;
         });
-        delete timersRef.current[userId];
       }, 3000);
-    },
-    [currentChannel?.id, currentUser?.id]
-  );
-
-  useEffect(() => {
-    if (!socket) return;
-    socket.on('user-typing', handleTyping);
-    return () => {
-      socket.off('user-typing', handleTyping);
     };
-  }, [socket, handleTyping]);
 
-  // Clear typers when channel changes
+    socket.on('user-typing', handler);
+    return () => socket.off('user-typing', handler);
+  }, [connected, channelId, currentUser?.id]);
+
+  // Clear on channel change
   useEffect(() => {
     setTypers({});
     Object.values(timersRef.current).forEach(clearTimeout);
     timersRef.current = {};
-  }, [currentChannel?.id]);
+  }, [channelId]);
 
   const names = Object.values(typers);
-  if (names.length === 0) return null;
+  if (names.length === 0) return <div className="typing-indicator" style={{ visibility: 'hidden' }}>&nbsp;</div>;
 
-  const text =
-    names.length === 1
-      ? `${names[0]}님이 입력 중...`
-      : `${names.join(', ')}님이 입력 중...`;
-
-  return <div className="typing-indicator">{text}</div>;
+  return (
+    <div className="typing-indicator">
+      {names.join(', ')}님이 입력 중...
+    </div>
+  );
 }

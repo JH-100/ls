@@ -20,7 +20,6 @@ export default function EmojiPicker({ onSelect, onClose }) {
         {EMOJI_LIST.map((emoji) => (
           <button
             key={emoji}
-            className="emoji-btn"
             onClick={() => onSelect(emoji)}
           >
             {emoji}

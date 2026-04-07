@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChannels } from '../../contexts/ChannelContext';
 import { useMessages } from '../../contexts/MessageContext';
@@ -21,113 +21,169 @@ import ProfileEditModal from '../modals/ProfileEditModal';
 
 export default function AppLayout() {
   const { currentUser } = useAuth();
-  const { currentChannel, loadChannelMessages } = useChannels();
-  const { activeThreadId, closeThread } = useMessages();
-  const socket = useSocket();
+  const { channels, activeChannelId, loadChannels, selectChannel } = useChannels();
+  const { messages, lastReadAt, loadMessages, activeThreadId, closeThread } = useMessages();
+  const { socketRef, connected, markRead } = useSocket();
 
   const [showSearch, setShowSearch] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
-  const [showCreateChannel, setShowCreateChannel] = useState(false);
-  const [showStartDm, setShowStartDm] = useState(false);
-  const [showInviteMembers, setShowInviteMembers] = useState(false);
-  const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [modal, setModal] = useState(null); // 'createChannel' | 'startDm' | 'invite' | 'profile' | null
+  const appVersionRef = useRef(null);
+
+  const activeChannel = channels.find(c => c.id === activeChannelId);
+
+  // Initial channel load
+  useEffect(() => {
+    loadChannels(false);
+  }, []);
+
+  // Load messages when active channel changes
+  useEffect(() => {
+    if (activeChannelId) {
+      loadMessages(activeChannelId);
+      markRead({ channelId: activeChannelId });
+    }
+  }, [activeChannelId]);
 
   // Version polling for auto-update
   useEffect(() => {
-    const checkVersion = async () => {
+    const check = async () => {
       try {
-        await apiCall('/api/version');
-      } catch {
-        // ignore
-      }
+        const data = await apiCall('/api/version');
+        if (appVersionRef.current && data.version !== appVersionRef.current) {
+          const lastReload = sessionStorage.getItem('ls-reload-ver');
+          if (lastReload !== data.version) {
+            sessionStorage.setItem('ls-reload-ver', data.version);
+            window.location.reload();
+            return;
+          }
+        }
+        appVersionRef.current = data.version;
+      } catch {}
     };
-    const interval = setInterval(checkVersion, 30000);
+    check();
+    const interval = setInterval(check, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // Visibility change - reload channel on focus
+  // Reload on focus/visibility
   useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && currentChannel) {
-        loadChannelMessages(currentChannel.id);
+    const handler = () => {
+      if (document.visibilityState === 'visible' && activeChannelId) {
+        loadMessages(activeChannelId);
+        if (navigator.clearAppBadge) navigator.clearAppBadge();
       }
     };
-
-    const handleFocus = () => {
-      if (currentChannel) {
-        loadChannelMessages(currentChannel.id);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibility);
-    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handler);
+    window.addEventListener('focus', handler);
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handler);
+      window.removeEventListener('focus', handler);
     };
-  }, [currentChannel, loadChannelMessages]);
+  }, [activeChannelId]);
 
-  const toggleSearch = useCallback(() => {
-    setShowSearch((prev) => !prev);
+  // Desktop notifications + badge on new messages
+  const unreadRef = useRef(0);
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    const handleNewMsg = (msg) => {
+      // Skip own messages
+      if (msg.user_id === currentUser?.id) return;
+
+      // Only notify if not viewing that channel or app is hidden
+      const isViewing = msg.channel_id === activeChannelId && document.visibilityState === 'visible';
+      if (isViewing) return;
+
+      // Taskbar badge
+      unreadRef.current++;
+      if (navigator.setAppBadge) navigator.setAppBadge(unreadRef.current);
+
+      // Desktop notification
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        const title = msg.display_name || 'LikeSlack';
+        const body = msg.content || '새 파일이 전송되었습니다';
+        const notif = new Notification(title, {
+          body: body.length > 100 ? body.substring(0, 100) + '...' : body,
+          icon: '/assets/icon-192.png',
+          tag: 'ls-' + msg.channel_id,
+          silent: false,
+        });
+        notif.onclick = () => {
+          window.focus();
+          selectChannel(msg.channel_id);
+          notif.close();
+        };
+      }
+    };
+
+    socket.on('new-message', handleNewMsg);
+    return () => socket.off('new-message', handleNewMsg);
+  }, [connected, activeChannelId, currentUser?.id, selectChannel]);
+
+  // Clear badge on focus
+  useEffect(() => {
+    const clear = () => {
+      unreadRef.current = 0;
+      if (navigator.clearAppBadge) navigator.clearAppBadge();
+    };
+    window.addEventListener('focus', clear);
+    return () => window.removeEventListener('focus', clear);
   }, []);
 
-  const toggleMembers = useCallback(() => {
-    setShowMembers((prev) => !prev);
-    if (activeThreadId) closeThread();
-  }, [activeThreadId, closeThread]);
-
-  const rightPanel = activeThreadId ? (
-    <ThreadPanel />
-  ) : showMembers && currentChannel ? (
-    <MembersPanel channelId={currentChannel.id} onClose={() => setShowMembers(false)} />
-  ) : null;
+  // Channel name display
+  let channelDisplayName = '';
+  if (activeChannel) {
+    if (activeChannel.is_dm === 1) channelDisplayName = activeChannel.dmUser?.display_name || 'DM';
+    else if (activeChannel.is_dm === 2) channelDisplayName = activeChannel.name;
+    else channelDisplayName = `# ${activeChannel.name}`;
+  }
 
   return (
-    <div className="app-container">
-      <NotificationBanner />
-
+    <>
+    <NotificationBanner />
+    <div className="app">
       <Sidebar
-        onCreateChannel={() => setShowCreateChannel(true)}
-        onStartDm={() => setShowStartDm(true)}
-        onProfileEdit={() => setShowProfileEdit(true)}
+        onCreateChannel={() => setModal('createChannel')}
+        onStartDm={() => setModal('startDm')}
+        onProfileEdit={() => setModal('profile')}
       />
 
       <main className="main-content">
-        {currentChannel ? (
+        {activeChannel ? (
           <>
             <ChannelHeader
-              channel={currentChannel}
-              onInvite={() => setShowInviteMembers(true)}
-              onToggleSearch={toggleSearch}
-              onToggleMembers={toggleMembers}
+              name={channelDisplayName}
+              description={activeChannel.description}
+              onInvite={() => setModal('invite')}
+              onToggleSearch={() => setShowSearch(s => !s)}
+              onToggleMembers={() => setShowMembers(s => !s)}
             />
             {showSearch && <SearchBar onClose={() => setShowSearch(false)} />}
-            <MessageList />
-            <TypingIndicator />
-            <MessageInput />
+            <MessageList
+              messages={messages}
+              currentUserId={currentUser?.id}
+              lastReadAt={lastReadAt}
+            />
+            <TypingIndicator channelId={activeChannelId} />
+            <MessageInput channelId={activeChannelId} />
           </>
         ) : (
           <EmptyState />
         )}
       </main>
 
-      {rightPanel && <aside className="right-panel">{rightPanel}</aside>}
+      {activeThreadId && <ThreadPanel />}
+      {showMembers && activeChannelId && !activeThreadId && (
+        <MembersPanel channelId={activeChannelId} onClose={() => setShowMembers(false)} />
+      )}
 
-      {showCreateChannel && (
-        <CreateChannelModal onClose={() => setShowCreateChannel(false)} />
-      )}
-      {showStartDm && (
-        <StartDmModal onClose={() => setShowStartDm(false)} />
-      )}
-      {showInviteMembers && currentChannel && (
-        <InviteMembersModal
-          channelId={currentChannel.id}
-          onClose={() => setShowInviteMembers(false)}
-        />
-      )}
-      {showProfileEdit && (
-        <ProfileEditModal onClose={() => setShowProfileEdit(false)} />
-      )}
+      {modal === 'createChannel' && <CreateChannelModal onClose={() => setModal(null)} />}
+      {modal === 'startDm' && <StartDmModal onClose={() => setModal(null)} />}
+      {modal === 'invite' && activeChannelId && <InviteMembersModal channelId={activeChannelId} onClose={() => setModal(null)} />}
+      {modal === 'profile' && <ProfileEditModal onClose={() => setModal(null)} />}
     </div>
+    </>
   );
 }

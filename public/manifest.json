@@ -3,6 +3,7 @@
   "short_name": "LikeSlack",
   "description": "로컬 네트워크 메신저",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
   "background_color": "#1a1d21",
   "theme_color": "#4A90D9",
@@ -12,13 +13,25 @@
       "src": "/assets/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/assets/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

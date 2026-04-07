@@ -1,121 +1,142 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useMessages } from '../../contexts/MessageContext';
 import { useSocket } from '../../contexts/SocketContext';
-import { useChannels } from '../../contexts/ChannelContext';
 import { debounce } from '../../utils/debounce';
 import { PaperclipIcon, SmileIcon, SendIcon } from '../icons';
-import { EMOJI_LIST } from '../../data/emojis';
 import EmojiPicker from '../reactions/EmojiPicker';
 import FilePreview from './FilePreview';
 import DropOverlay from './DropOverlay';
 
-export default function MessageInput() {
+export default function MessageInput({ channelId }) {
   const [content, setContent] = useState('');
   const [pendingFile, setPendingFile] = useState(null);
   const [showEmoji, setShowEmoji] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
+  const dragCounterRef = useRef(0);
 
-  const { sendMessage } = useMessages();
-  const socket = useSocket();
-  const { currentChannel } = useChannels();
+  const { sendMessage, sendTyping } = useSocket();
+
+  // Reset on channel change
+  useEffect(() => {
+    setContent('');
+    setPendingFile(null);
+    setShowEmoji(false);
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+  }, [channelId]);
 
   const emitTyping = useCallback(
     debounce(() => {
-      if (currentChannel) {
-        socket.emitTyping(currentChannel.id);
-      }
+      if (channelId) sendTyping(channelId);
     }, 1000),
-    [socket, currentChannel]
+    [channelId, sendTyping]
   );
 
-  const autoResize = useCallback(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
-    }
-  }, []);
+  const uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/files/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  };
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback(async () => {
     const text = content.trim();
     if (!text && !pendingFile) return;
+    if (!channelId) return;
 
-    sendMessage(text, pendingFile);
+    const msgData = { channelId, content: text };
+
+    if (pendingFile) {
+      // Already uploaded (has url) vs raw File object
+      if (pendingFile.url) {
+        msgData.fileUrl = pendingFile.url;
+        msgData.fileName = pendingFile.originalName;
+        msgData.fileType = pendingFile.mimeType;
+      } else {
+        try {
+          const uploaded = await uploadFile(pendingFile);
+          msgData.fileUrl = uploaded.url;
+          msgData.fileName = uploaded.originalName;
+          msgData.fileType = uploaded.mimeType;
+        } catch (err) {
+          alert(err.message);
+          return;
+        }
+      }
+    }
+
+    sendMessage(msgData, (res) => {
+      if (res?.error) console.error(res.error);
+    });
+
     setContent('');
     setPendingFile(null);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
-  }, [content, pendingFile, sendMessage]);
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+  }, [content, pendingFile, channelId, sendMessage]);
 
-  const handleKeyDown = useCallback(
-    (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handlePaste = async (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
         e.preventDefault();
-        handleSend();
+        const file = item.getAsFile();
+        if (!file) return;
+        try {
+          const uploaded = await uploadFile(file);
+          setPendingFile(uploaded);
+        } catch (err) {
+          alert(err.message);
+        }
+        return;
       }
-    },
-    [handleSend]
-  );
+    }
+  };
 
-  const handleChange = useCallback(
-    (e) => {
-      setContent(e.target.value);
-      emitTyping();
-      autoResize();
-    },
-    [emitTyping, autoResize]
-  );
+  const handleChange = (e) => {
+    setContent(e.target.value);
+    emitTyping();
+    const ta = textareaRef.current;
+    if (ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 140) + 'px'; }
+  };
 
-  const handleFileChange = useCallback((e) => {
+  const handleFileDrop = async (file) => {
+    try {
+      const uploaded = await uploadFile(file);
+      setPendingFile(uploaded);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleFileInput = async (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setPendingFile(file);
-    }
+    if (!file) return;
     e.target.value = '';
-  }, []);
-
-  const handleEmojiSelect = useCallback((emoji) => {
-    setContent((prev) => prev + emoji);
-    setShowEmoji(false);
-    textareaRef.current?.focus();
-  }, []);
-
-  // Drag & drop
-  const handleDragEnter = useCallback((e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e) => {
-    e.preventDefault();
-    if (e.currentTarget === e.target) {
-      setIsDragging(false);
+    try {
+      const uploaded = await uploadFile(file);
+      setPendingFile(uploaded);
+    } catch (err) {
+      alert(err.message);
     }
-  }, []);
-
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
-  }, []);
-
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      setPendingFile(file);
-    }
-  }, []);
+  };
 
   return (
     <div
-      className="message-input-container"
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
+      className="message-input-area"
+      onDragEnter={(e) => { e.preventDefault(); dragCounterRef.current++; setIsDragging(true); }}
+      onDragLeave={(e) => { e.preventDefault(); dragCounterRef.current--; if (dragCounterRef.current === 0) setIsDragging(false); }}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => { e.preventDefault(); dragCounterRef.current = 0; setIsDragging(false); const f = e.dataTransfer.files?.[0]; if (f) handleFileDrop(f); }}
     >
       {isDragging && <DropOverlay />}
 
@@ -123,52 +144,29 @@ export default function MessageInput() {
         <FilePreview file={pendingFile} onRemove={() => setPendingFile(null)} />
       )}
 
-      <div className="message-input-row">
-        <button
-          className="icon-btn"
-          onClick={() => fileInputRef.current?.click()}
-          title="파일 첨부"
-        >
-          <PaperclipIcon size={18} />
+      <div className="input-row">
+        <button className="icon-btn" onClick={() => fileInputRef.current?.click()} title="파일 첨부">
+          <PaperclipIcon size={20} />
         </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-        />
+        <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileInput} />
         <textarea
           ref={textareaRef}
-          className="message-input"
           value={content}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="메시지를 입력하세요..."
           rows={1}
         />
-        <button
-          className="icon-btn"
-          onClick={() => setShowEmoji(!showEmoji)}
-          title="이모지"
-        >
-          <SmileIcon size={18} />
+        <button className="icon-btn" onClick={() => setShowEmoji(s => !s)} title="이모지">
+          <SmileIcon size={20} />
         </button>
-        <button
-          className="icon-btn send-btn"
-          onClick={handleSend}
-          title="전송"
-          disabled={!content.trim() && !pendingFile}
-        >
+        <button className="send-btn" onClick={handleSend} title="전송">
           <SendIcon size={18} />
         </button>
       </div>
 
-      {showEmoji && (
-        <EmojiPicker
-          onSelect={handleEmojiSelect}
-          onClose={() => setShowEmoji(false)}
-        />
-      )}
+      {showEmoji && <EmojiPicker onSelect={(e) => { setContent(c => c + e); setShowEmoji(false); textareaRef.current?.focus(); }} onClose={() => setShowEmoji(false)} />}
     </div>
   );
 }

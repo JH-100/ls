@@ -54,7 +54,8 @@ export default function MessageList() {
   }, [messages]);
 
   return (
-    <div className="message-list" ref={containerRef}>
+    <div className="messages-container" ref={containerRef}>
+      <div className="messages-list">
       {items.map((item) => {
         if (item.type === 'date') {
           return <DateDivider key={item.key} date={item.date} />;
@@ -70,6 +71,7 @@ export default function MessageList() {
           />
         );
       })}
+      </div>
     </div>
   );
 }
