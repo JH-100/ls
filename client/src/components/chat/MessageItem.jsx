@@ -49,7 +49,7 @@ export default function MessageItem({ msg, currentUserId }) {
 
   return (
     <div className="message" data-message-id={msg.id}>
-      <Avatar name={msg.display_name} color={msg.avatar_color} size={38} />
+      <Avatar name={msg.display_name} color={msg.avatar_color} url={msg.avatar_url} size={38} />
       <div className="message-body">
         <div className="message-header">
           <span className="message-author">{msg.display_name}</span>

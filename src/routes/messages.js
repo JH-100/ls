@@ -25,7 +25,7 @@ router.get('/:channelId', requireAuth, (req, res) => {
   let messages;
   if (before) {
     messages = db.prepare(`
-      SELECT m.*, u.username, u.display_name, u.avatar_color,
+      SELECT m.*, u.username, u.display_name, u.avatar_color, u.avatar_url,
         (SELECT COUNT(*) FROM messages r WHERE r.parent_id = m.id) as reply_count
       FROM messages m
       JOIN users u ON m.user_id = u.id
@@ -35,7 +35,7 @@ router.get('/:channelId', requireAuth, (req, res) => {
     `).all(channelId, before, limit);
   } else {
     messages = db.prepare(`
-      SELECT m.*, u.username, u.display_name, u.avatar_color,
+      SELECT m.*, u.username, u.display_name, u.avatar_color, u.avatar_url,
         (SELECT COUNT(*) FROM messages r WHERE r.parent_id = m.id) as reply_count
       FROM messages m
       JOIN users u ON m.user_id = u.id
@@ -117,7 +117,7 @@ router.get('/search/query', requireAuth, (req, res) => {
 
   const db = getDb();
   const messages = db.prepare(`
-    SELECT m.*, u.username, u.display_name, u.avatar_color, c.name as channel_name
+    SELECT m.*, u.username, u.display_name, u.avatar_color, u.avatar_url, c.name as channel_name
     FROM messages m
     JOIN users u ON m.user_id = u.id
     JOIN channels c ON m.channel_id = c.id

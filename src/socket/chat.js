@@ -39,7 +39,7 @@ function setupChatHandlers(io, socket, userId) {
     `).run(id, channelId, userId, sanitizedContent, parentId || null, fileUrl || null, fileName || null, fileType || null);
 
     const message = db.prepare(`
-      SELECT m.*, u.username, u.display_name, u.avatar_color,
+      SELECT m.*, u.username, u.display_name, u.avatar_color, u.avatar_url,
         (SELECT COUNT(*) FROM messages r WHERE r.parent_id = m.id) as reply_count
       FROM messages m
       JOIN users u ON m.user_id = u.id
@@ -88,7 +88,7 @@ function setupChatHandlers(io, socket, userId) {
     db.prepare('UPDATE messages SET content = ?, edited = 1, updated_at = datetime(?) WHERE id = ?').run(sanitized, 'now', messageId);
 
     const updated = db.prepare(`
-      SELECT m.*, u.username, u.display_name, u.avatar_color
+      SELECT m.*, u.username, u.display_name, u.avatar_color, u.avatar_url
       FROM messages m JOIN users u ON m.user_id = u.id WHERE m.id = ?
     `).get(messageId);
 

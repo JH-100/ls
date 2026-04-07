@@ -43,11 +43,7 @@ export default function ProfileEditModal({ onClose }) {
     setStatus('saving');
     setErrorMsg('');
     try {
-      const body = { displayName: displayName.trim(), avatarColor: selectedColor };
-      if (avatarUrl === null && (currentUser?.avatarUrl || currentUser?.avatar_url)) {
-        body.avatarUrl = null;
-      }
-      await updateProfile(body.displayName, body.avatarColor, body.avatarUrl);
+      await updateProfile(displayName.trim(), selectedColor, avatarUrl);
       onClose();
     } catch (err) {
       setErrorMsg(err.message);

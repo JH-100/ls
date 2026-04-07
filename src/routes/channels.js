@@ -22,7 +22,7 @@ router.get('/', requireAuth, (req, res) => {
   const result = channels.map(ch => {
     if (ch.is_dm === 1) {
       const otherUser = db.prepare(`
-        SELECT u.id, u.username, u.display_name, u.avatar_color, u.status
+        SELECT u.id, u.username, u.display_name, u.avatar_color, u.avatar_url, u.status
         FROM channel_members cm
         JOIN users u ON cm.user_id = u.id
         WHERE cm.channel_id = ? AND cm.user_id != ?
@@ -31,7 +31,7 @@ router.get('/', requireAuth, (req, res) => {
     }
     if (ch.is_dm === 2) {
       const members = db.prepare(`
-        SELECT u.id, u.display_name, u.avatar_color, u.status
+        SELECT u.id, u.display_name, u.avatar_color, u.avatar_url, u.status
         FROM channel_members cm
         JOIN users u ON cm.user_id = u.id
         WHERE cm.channel_id = ?
@@ -203,7 +203,7 @@ router.post('/:id/leave', requireAuth, (req, res) => {
 router.get('/:id/members', requireAuth, (req, res) => {
   const db = getDb();
   const members = db.prepare(`
-    SELECT u.id, u.username, u.display_name, u.avatar_color, u.status
+    SELECT u.id, u.username, u.display_name, u.avatar_color, u.avatar_url, u.status
     FROM channel_members cm
     JOIN users u ON cm.user_id = u.id
     WHERE cm.channel_id = ?
