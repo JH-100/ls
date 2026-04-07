@@ -15,10 +15,14 @@ export function ChannelProvider({ children }) {
       const data = await apiCall('/api/channels');
       const channelList = data.channels || data;
 
-      setChannels(channelList);
+      // Active channel always has 0 unread
+      setChannels(channelList.map(ch =>
+        ch.id === activeChannelId ? { ...ch, unread_count: 0 } : ch
+      ));
 
       if (!keepActive && channelList.length > 0) {
-        setActiveChannelId(channelList[0].id);
+        const general = channelList.find(c => c.name === 'general');
+        setActiveChannelId(general ? general.id : channelList[0].id);
       }
 
       // Join all channel rooms

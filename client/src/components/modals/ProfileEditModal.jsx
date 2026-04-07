@@ -86,22 +86,20 @@ export default function ProfileEditModal({ onClose }) {
             )}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
+            <label
               style={{
                 padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)',
                 background: uploading ? 'var(--accent)' : 'var(--bg-tertiary)',
                 color: uploading ? '#fff' : 'var(--text-primary)',
                 cursor: uploading ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600,
-                display: 'flex', alignItems: 'center', gap: 8,
+                display: 'inline-flex', alignItems: 'center', gap: 8,
                 transition: 'all 0.2s',
               }}
             >
               {uploading && <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />}
               {uploading ? '업로드 중...' : '이미지 업로드'}
-            </button>
+              {!uploading && <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} />}
+            </label>
             {avatarUrl && (
               <button
                 type="button"
