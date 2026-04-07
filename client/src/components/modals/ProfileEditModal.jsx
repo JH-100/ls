@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import Modal from '../common/Modal';
 import { PlusIcon } from '../icons';
@@ -13,168 +13,142 @@ export default function ProfileEditModal({ onClose }) {
   const [displayName, setDisplayName] = useState(currentUser?.displayName || currentUser?.display_name || '');
   const [selectedColor, setSelectedColor] = useState(currentUser?.avatarColor || currentUser?.avatar_color || PRESET_COLORS[0]);
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl || currentUser?.avatar_url || null);
-  const [uploading, setUploading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const fileInputRef = useRef(null);
+  const [status, setStatus] = useState('idle'); // idle | uploading | saving | error
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleImageUpload = async (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    e.target.value = '';
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('avatar', file);
-      const res = await fetch('/api/auth/avatar', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setAvatarUrl(data.avatarUrl);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setUploading(false);
-    }
-  };
 
-  const handleRemoveImage = () => {
-    setAvatarUrl(null);
+    setStatus('uploading');
+    setErrorMsg('');
+    try {
+      const fd = new FormData();
+      fd.append('avatar', file);
+      const res = await fetch('/api/auth/avatar', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '업로드 실패');
+      setAvatarUrl(data.avatarUrl);
+      setStatus('idle');
+    } catch (err) {
+      setErrorMsg('이미지 업로드 실패: ' + err.message);
+      setStatus('error');
+    }
+    // Reset input so same file can be re-selected
+    e.target.value = '';
   };
 
   const handleSave = async () => {
     if (!displayName.trim()) return;
-    setSaving(true);
+    setStatus('saving');
+    setErrorMsg('');
     try {
-      // If avatar was uploaded, it's already saved on server
-      // Only send avatarUrl if it was removed (null) or unchanged
       const body = { displayName: displayName.trim(), avatarColor: selectedColor };
       if (avatarUrl === null && (currentUser?.avatarUrl || currentUser?.avatar_url)) {
-        body.avatarUrl = null; // explicitly remove
+        body.avatarUrl = null;
       }
       await updateProfile(body.displayName, body.avatarColor, body.avatarUrl);
       onClose();
     } catch (err) {
-      if (err.message.includes('로그인')) {
-        // Session expired during save — just close and let auto-login handle it
-        onClose();
-        window.location.reload();
-      } else {
-        alert(err.message);
-      }
-    } finally {
-      setSaving(false);
+      setErrorMsg(err.message);
+      setStatus('error');
     }
   };
 
   const initial = (displayName || '?').charAt(0).toUpperCase();
+  const isUploading = status === 'uploading';
+  const isSaving = status === 'saving';
+  const isBusy = isUploading || isSaving;
 
   return (
     <Modal title="프로필 수정" onClose={onClose}>
+      {errorMsg && <div className="error-message" style={{ marginBottom: 12 }}>{errorMsg}</div>}
+
       <div className="form-group">
         <label>표시 이름</label>
         <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} />
       </div>
 
-      {/* Avatar preview */}
       <div className="form-group">
         <label>아바타</label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 8 }}>
+          {/* Preview */}
           <div style={{
-            width: 64, height: 64, borderRadius: 16, overflow: 'hidden',
-            background: avatarUrl ? 'none' : selectedColor,
+            width: 64, height: 64, borderRadius: 16, overflow: 'hidden', position: 'relative',
+            background: avatarUrl ? '#222' : selectedColor,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff', fontWeight: 800, fontSize: 26, flexShrink: 0,
-            position: 'relative',
           }}>
-            {avatarUrl ? (
-              <img src={avatarUrl + '?t=' + Date.now()} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : initial}
-            {uploading && (
-              <div style={{
-                position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
+            {avatarUrl
+              ? <img src={avatarUrl + '?v=' + Date.now()} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : initial
+            }
+            {isUploading && (
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div className="spinner" style={{ width: 24, height: 24, borderWidth: 3 }} />
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label
-              style={{
-                padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)',
-                background: uploading ? 'var(--accent)' : 'var(--bg-tertiary)',
-                color: uploading ? '#fff' : 'var(--text-primary)',
-                cursor: uploading ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600,
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                transition: 'all 0.2s',
-              }}
-            >
-              {uploading && <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />}
-              {uploading ? '업로드 중...' : '이미지 업로드'}
-              {!uploading && <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} />}
+
+          {/* Upload button — uses <label> wrapping <input> for guaranteed browser compatibility */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{
+              padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+              border: '1px solid var(--border-color)',
+              background: isUploading ? 'var(--accent)' : 'var(--bg-tertiary)',
+              color: isUploading ? '#fff' : 'var(--text-primary)',
+              cursor: isBusy ? 'wait' : 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+            }}>
+              {isUploading && <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />}
+              {isUploading ? '업로드 중...' : '이미지 변경'}
+              <input type="file" accept="image/*" onChange={handleFileChange} disabled={isBusy}
+                style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }} />
             </label>
-            {avatarUrl && (
-              <button
-                type="button"
-                onClick={handleRemoveImage}
-                style={{
-                  padding: '4px 14px', borderRadius: 6, border: 'none',
-                  background: 'none', color: 'var(--danger)',
-                  cursor: 'pointer', fontSize: 12,
-                }}
-              >
+            {avatarUrl && !isBusy && (
+              <button type="button" onClick={() => { setAvatarUrl(null); setErrorMsg(''); }}
+                style={{ padding: '4px 16px', borderRadius: 6, border: 'none', background: 'none', color: '#E74C3C', cursor: 'pointer', fontSize: 12, textAlign: 'left' }}>
                 이미지 제거
               </button>
             )}
           </div>
-          <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} />
         </div>
       </div>
 
-      {/* Color picker (only when no image) */}
+      {/* Color picker — only when no image */}
       {!avatarUrl && (
         <div className="form-group">
           <label>아바타 색상</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8, alignItems: 'center' }}>
             {PRESET_COLORS.map(c => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setSelectedColor(c)}
-                style={{
-                  width: 36, height: 36, borderRadius: 8,
-                  border: c === selectedColor ? '3px solid #fff' : '3px solid transparent',
-                  background: c, cursor: 'pointer',
-                }}
-              />
+              <button key={c} type="button" onClick={() => setSelectedColor(c)}
+                style={{ width: 36, height: 36, borderRadius: 8, background: c, cursor: 'pointer',
+                  border: c === selectedColor ? '3px solid #fff' : '3px solid transparent' }} />
             ))}
-            <label
-              style={{
-                width: 36, height: 36, borderRadius: 8, position: 'relative',
-                border: !PRESET_COLORS.includes(selectedColor) ? '3px solid #fff' : '1px dashed var(--text-secondary)',
-                background: !PRESET_COLORS.includes(selectedColor) ? selectedColor : 'var(--bg-tertiary)',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--text-secondary)', overflow: 'hidden',
-              }}
-              title="커스텀 색상"
-            >
+            <label style={{
+              width: 36, height: 36, borderRadius: 8, position: 'relative', overflow: 'hidden',
+              border: !PRESET_COLORS.includes(selectedColor) ? '3px solid #fff' : '1px dashed var(--text-secondary)',
+              background: !PRESET_COLORS.includes(selectedColor) ? selectedColor : 'var(--bg-tertiary)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--text-secondary)',
+            }} title="커스텀 색상">
               <PlusIcon size={14} />
-              <input
-                type="color"
-                value={selectedColor}
-                onChange={e => setSelectedColor(e.target.value)}
-                style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
-              />
+              <input type="color" value={selectedColor} onChange={e => setSelectedColor(e.target.value)}
+                style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
             </label>
           </div>
         </div>
       )}
 
+      {/* Action buttons */}
       <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-        <button type="button" onClick={onClose} style={{ flex: 1, padding: 10, border: '1px solid var(--border-color)', borderRadius: 8, background: 'var(--bg-tertiary)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
+        <button type="button" onClick={onClose} disabled={isBusy}
+          style={{ flex: 1, padding: 10, border: '1px solid var(--border-color)', borderRadius: 8, background: 'var(--bg-tertiary)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
           취소
         </button>
-        <button type="button" onClick={handleSave} disabled={saving || uploading} style={{ flex: 1, padding: 10, border: 'none', borderRadius: 8, background: 'var(--accent)', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 600, opacity: (saving || uploading) ? 0.6 : 1 }}>
-          {saving ? '저장 중...' : '저장'}
+        <button type="button" onClick={handleSave} disabled={isBusy}
+          style={{ flex: 1, padding: 10, border: 'none', borderRadius: 8, background: isBusy ? 'var(--bg-hover)' : 'var(--accent)', color: '#fff', cursor: isBusy ? 'wait' : 'pointer', fontSize: 14, fontWeight: 600 }}>
+          {isSaving ? '저장 중...' : '저장'}
         </button>
       </div>
     </Modal>

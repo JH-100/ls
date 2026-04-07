@@ -2,36 +2,29 @@ import { useState, useEffect } from 'react';
 
 export default function NotificationBanner() {
   const [visible, setVisible] = useState(false);
-  const [permission, setPermission] = useState('default');
+  const [isDenied, setIsDenied] = useState(false);
 
   useEffect(() => {
     if (typeof Notification === 'undefined') return;
     if (localStorage.getItem('likeslack-notif-asked')) return;
+    if (Notification.permission === 'granted') return;
 
-    const perm = Notification.permission;
-    setPermission(perm);
-
-    // Show banner if not yet granted
-    if (perm !== 'granted') {
-      setVisible(true);
-    }
+    setIsDenied(Notification.permission === 'denied');
+    setVisible(true);
   }, []);
 
   const handleAllow = async () => {
     if (typeof Notification !== 'undefined') {
       const result = await Notification.requestPermission();
-      setPermission(result);
       if (result === 'granted') {
+        new Notification('LikeSlack', { body: '알림이 활성화되었습니다!', icon: '/assets/icon-192.png' });
         localStorage.setItem('likeslack-notif-asked', 'true');
         setVisible(false);
-        // Test notification
-        new Notification('LikeSlack', { body: '알림이 활성화되었습니다!', icon: '/assets/icon-192.png' });
         return;
       }
-      // If denied by browser (HTTP restriction), show guide
       if (result === 'denied') {
-        setPermission('denied');
-        return; // keep banner visible with guide text
+        setIsDenied(true);
+        return;
       }
     }
     localStorage.setItem('likeslack-notif-asked', 'true');
@@ -47,9 +40,9 @@ export default function NotificationBanner() {
 
   return (
     <div className="notification-banner">
-      {permission === 'denied' ? (
+      {isDenied ? (
         <>
-          <span>알림이 차단되어 있습니다. 주소창 왼쪽 🔒 → 사이트 설정 → 알림 → 허용으로 변경해주세요</span>
+          <span>알림이 차단되어 있습니다. 브라우저 설정에서 이 사이트의 알림을 허용해주세요.</span>
           <button className="btn btn-dismiss" onClick={handleDismiss}>닫기</button>
         </>
       ) : (

@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "likeslack-test",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "port": 5174,
+      "env": {
+        "PORT": "5174"
+      }
+    }
+  ]
+}
