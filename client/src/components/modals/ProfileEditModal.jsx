@@ -14,6 +14,7 @@ export default function ProfileEditModal({ onClose }) {
   const [selectedColor, setSelectedColor] = useState(currentUser?.avatarColor || currentUser?.avatar_color || PRESET_COLORS[0]);
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl || currentUser?.avatar_url || null);
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleImageUpload = async (e) => {
@@ -41,11 +42,14 @@ export default function ProfileEditModal({ onClose }) {
 
   const handleSave = async () => {
     if (!displayName.trim()) return;
+    setSaving(true);
     try {
       await updateProfile(displayName.trim(), selectedColor, avatarUrl);
       onClose();
     } catch (err) {
       alert(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -67,10 +71,19 @@ export default function ProfileEditModal({ onClose }) {
             background: avatarUrl ? 'none' : selectedColor,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff', fontWeight: 800, fontSize: 26, flexShrink: 0,
+            position: 'relative',
           }}>
             {avatarUrl ? (
               <img src={avatarUrl + '?t=' + Date.now()} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : initial}
+            {uploading && (
+              <div style={{
+                position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <div className="spinner" style={{ width: 24, height: 24, borderWidth: 3 }} />
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <button
@@ -146,8 +159,8 @@ export default function ProfileEditModal({ onClose }) {
         <button type="button" onClick={onClose} style={{ flex: 1, padding: 10, border: '1px solid var(--border-color)', borderRadius: 8, background: 'var(--bg-tertiary)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
           취소
         </button>
-        <button type="button" onClick={handleSave} style={{ flex: 1, padding: 10, border: 'none', borderRadius: 8, background: 'var(--accent)', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
-          저장
+        <button type="button" onClick={handleSave} disabled={saving || uploading} style={{ flex: 1, padding: 10, border: 'none', borderRadius: 8, background: 'var(--accent)', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 600, opacity: (saving || uploading) ? 0.6 : 1 }}>
+          {saving ? '저장 중...' : '저장'}
         </button>
       </div>
     </Modal>

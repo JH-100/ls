@@ -7,15 +7,26 @@ export function SocketProvider({ user, children }) {
   const socketRef = useRef(null);
   const [connected, setConnected] = useState(false);
 
+  const userIdRef = useRef(null);
+
   useEffect(() => {
+    // Only reconnect when user logs in/out, not on profile updates
     if (!user) {
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
         setConnected(false);
       }
+      userIdRef.current = null;
       return;
     }
+
+    // Already connected for this user
+    if (userIdRef.current === user.id && socketRef.current) return;
+    userIdRef.current = user.id;
+
+    // Disconnect old socket if exists
+    if (socketRef.current) socketRef.current.disconnect();
 
     const socket = io({ autoConnect: true });
     socketRef.current = socket;
@@ -35,7 +46,7 @@ export function SocketProvider({ user, children }) {
       socketRef.current = null;
       setConnected(false);
     };
-  }, [user]);
+  }, [user?.id]);
 
   const joinChannel = useCallback((channelId) => {
     socketRef.current?.emit('join-channel', channelId);
