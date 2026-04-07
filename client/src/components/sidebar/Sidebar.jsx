@@ -1,13 +1,10 @@
-import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { MoonIcon, SunIcon, PlusIcon } from '../icons';
 import ChannelList from './ChannelList';
 import DmList from './DmList';
-import UserList from './UserList';
 import SidebarFooter from './SidebarFooter';
 
 export default function Sidebar({ onCreateChannel, onStartDm, onProfileEdit }) {
-  const { currentUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   return (
@@ -37,13 +34,6 @@ export default function Sidebar({ onCreateChannel, onStartDm, onProfileEdit }) {
           </button>
         </div>
         <DmList />
-      </div>
-
-      <div className="sidebar-section">
-        <div className="section-header">
-          <span>사용자</span>
-        </div>
-        <UserList />
       </div>
 
       <SidebarFooter onProfileEdit={onProfileEdit} />

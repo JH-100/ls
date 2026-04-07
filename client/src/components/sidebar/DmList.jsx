@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { useChannels } from '../../contexts/ChannelContext';
 import { UsersIcon, XIcon } from '../icons';
 import StatusDot from '../common/StatusDot';
@@ -5,7 +7,25 @@ import Badge from '../common/Badge';
 import { apiCall } from '../../api';
 
 export default function DmList() {
-  const { channels, activeChannelId, selectChannel, loadChannels } = useChannels();
+  const { currentUser } = useAuth();
+  const { channels, activeChannelId, allUsers, selectChannel, loadChannels, createDm } = useChannels();
+
+  const dmChannels = channels.filter(ch => ch.is_dm === 1 || ch.is_dm === 2);
+
+  // Users who already have a DM channel
+  const dmUserIds = useMemo(() => {
+    const ids = new Set();
+    dmChannels.filter(ch => ch.is_dm === 1).forEach(ch => {
+      if (ch.dmUser?.id) ids.add(ch.dmUser.id);
+    });
+    return ids;
+  }, [dmChannels]);
+
+  // Users without a DM yet
+  const noDmUsers = useMemo(
+    () => allUsers.filter(u => u.id !== currentUser?.id && !dmUserIds.has(u.id)),
+    [allUsers, currentUser?.id, dmUserIds]
+  );
 
   const handleLeave = async (e, channelId) => {
     e.stopPropagation();
@@ -16,9 +36,17 @@ export default function DmList() {
     } catch {}
   };
 
+  const handleStartDm = async (userId) => {
+    try {
+      const channel = await createDm(userId);
+      if (channel?.id) selectChannel(channel.id);
+    } catch {}
+  };
+
   return (
     <ul className="nav-list">
-      {channels.filter(ch => ch.is_dm === 1 || ch.is_dm === 2).map(ch => (
+      {/* Existing DM/group channels */}
+      {dmChannels.map(ch => (
         <li
           key={ch.id}
           className={activeChannelId === ch.id ? 'active' : ''}
@@ -46,10 +74,23 @@ export default function DmList() {
             onClick={(e) => handleLeave(e, ch.id)}
             title="대화 나가기"
             style={{ opacity: 0, transition: 'opacity 0.15s', padding: 2 }}
-            onMouseOver={e => e.currentTarget.style.opacity = 1}
           >
             <XIcon size={14} />
           </button>
+        </li>
+      ))}
+
+      {/* Users without DM yet */}
+      {noDmUsers.map(user => (
+        <li
+          key={user.id}
+          onClick={() => handleStartDm(user.id)}
+          style={{ opacity: 0.6 }}
+        >
+          <StatusDot status={user.status} />
+          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {user.display_name}
+          </span>
         </li>
       ))}
     </ul>
