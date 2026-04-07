@@ -15,10 +15,13 @@ export function MessageProvider({ children }) {
 
   const loadMessages = useCallback(async (channelId) => {
     activeChannelRef.current = channelId;
+    // Clear immediately so UI doesn't show stale messages
+    setMessages([]);
+    setLastReadAt(null);
     try {
       const data = await apiCall(`/api/messages/${channelId}`);
       if (activeChannelRef.current === channelId) {
-        setMessages(data.messages || []);
+        setMessages(data.messages || data || []);
         setLastReadAt(data.lastReadAt || null);
       }
       return data;

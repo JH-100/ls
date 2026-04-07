@@ -99,11 +99,12 @@ export default function ProfileEditModal({ onClose }) {
               color: isUploading ? '#fff' : 'var(--text-primary)',
               cursor: isBusy ? 'wait' : 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 8,
+              position: 'relative', overflow: 'hidden',
             }}>
               {isUploading && <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />}
               {isUploading ? '업로드 중...' : '이미지 변경'}
               <input type="file" accept="image/*" onChange={handleFileChange} disabled={isBusy}
-                style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }} />
+                style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }} />
             </label>
             {avatarUrl && !isBusy && (
               <button type="button" onClick={() => { setAvatarUrl(null); setErrorMsg(''); }}
