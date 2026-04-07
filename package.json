@@ -13,7 +13,10 @@
     "lint:fix": "eslint src/ server.js --fix",
     "format": "prettier --write \"**/*.{js,json,css,html,md}\"",
     "format:check": "prettier --check \"**/*.{js,json,css,html,md}\"",
-    "prepare": "husky"
+    "prepare": "husky",
+    "client:dev": "cd client && npx vite",
+    "client:build": "cd client && npx vite build",
+    "build": "npm run client:build"
   },
   "keywords": [
     "messenger",
