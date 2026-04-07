@@ -91,11 +91,15 @@ export default function ProfileEditModal({ onClose }) {
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
               style={{
-                padding: '6px 14px', borderRadius: 6, border: '1px solid var(--border-color)',
-                background: 'var(--bg-tertiary)', color: 'var(--text-primary)',
-                cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)',
+                background: uploading ? 'var(--accent)' : 'var(--bg-tertiary)',
+                color: uploading ? '#fff' : 'var(--text-primary)',
+                cursor: uploading ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: 8,
+                transition: 'all 0.2s',
               }}
             >
+              {uploading && <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />}
               {uploading ? '업로드 중...' : '이미지 업로드'}
             </button>
             {avatarUrl && (
