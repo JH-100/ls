@@ -11,5 +11,6 @@ certs/
 coverage/
 desktop/dist/
 desktop/node_modules/
+downloads/*.exe
 .DS_Store
 Thumbs.db

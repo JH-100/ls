@@ -83,6 +83,9 @@ app.use('/api/channels', require('./src/routes/channels'));
 app.use('/api/messages', require('./src/routes/messages'));
 app.use('/api/files', require('./src/routes/files'));
 
+// Desktop app download
+app.use('/download', express.static(path.join(__dirname, 'downloads')));
+
 // SPA catch-all — serve index.html for all non-API routes (React Router)
 app.get('/{*splat}', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
