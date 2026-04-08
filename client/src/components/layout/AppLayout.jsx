@@ -83,7 +83,7 @@ export default function AppLayout() {
     };
   }, [activeChannelId]);
 
-  // Notifications: sound + badge + toast + native (if available)
+  // Badge notification (taskbar + title)
   const { notify, clearBadge } = useNotification();
 
   useEffect(() => {
@@ -94,12 +94,7 @@ export default function AppLayout() {
       if (msg.user_id === currentUser?.id) return;
       const isViewing = msg.channel_id === activeChannelId && document.visibilityState === 'visible';
       if (isViewing) return;
-
-      notify(
-        msg.display_name || 'LikeSlack',
-        msg.content,
-        () => selectChannel(msg.channel_id)
-      );
+      notify();
     };
 
     socket.on('new-message', handleNewMsg);
