@@ -13,12 +13,25 @@
   "build": {
     "appId": "com.likeslack.desktop",
     "productName": "LikeSlack",
+    "forceCodeSigning": false,
     "win": {
-      "target": "portable",
-      "icon": "../public/assets/icon-512.png"
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "icon.png",
+      "signAndEditExecutable": false
     },
     "portable": {
       "artifactName": "LikeSlack.exe"
-    }
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "config.json",
+      "icon.png"
+    ]
   }
 }
