@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useChannels } from '../../contexts/ChannelContext';
 import { useMessages } from '../../contexts/MessageContext';
 import { useSocket } from '../../contexts/SocketContext';
+import { useNotification } from '../../hooks/useNotification';
 import { apiCall } from '../../api';
 import Sidebar from '../sidebar/Sidebar';
 import ChannelHeader from '../chat/ChannelHeader';
@@ -82,55 +83,28 @@ export default function AppLayout() {
     };
   }, [activeChannelId]);
 
-  // Desktop notifications + badge on new messages
-  const unreadRef = useRef(0);
+  // Notifications: sound + badge + toast + native (if available)
+  const { notify, clearBadge } = useNotification();
+
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket) return;
 
     const handleNewMsg = (msg) => {
-      // Skip own messages
       if (msg.user_id === currentUser?.id) return;
-
-      // Only notify if not viewing that channel or app is hidden
       const isViewing = msg.channel_id === activeChannelId && document.visibilityState === 'visible';
       if (isViewing) return;
 
-      // Taskbar badge
-      unreadRef.current++;
-      if (navigator.setAppBadge) navigator.setAppBadge(unreadRef.current);
-
-      // Desktop notification
-      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        const title = msg.display_name || 'LikeSlack';
-        const body = msg.content || '새 파일이 전송되었습니다';
-        const notif = new Notification(title, {
-          body: body.length > 100 ? body.substring(0, 100) + '...' : body,
-          icon: '/assets/icon-192.png',
-          tag: 'ls-' + msg.channel_id,
-          silent: false,
-        });
-        notif.onclick = () => {
-          window.focus();
-          selectChannel(msg.channel_id);
-          notif.close();
-        };
-      }
+      notify(
+        msg.display_name || 'LikeSlack',
+        msg.content,
+        () => selectChannel(msg.channel_id)
+      );
     };
 
     socket.on('new-message', handleNewMsg);
     return () => socket.off('new-message', handleNewMsg);
-  }, [connected, activeChannelId, currentUser?.id, selectChannel]);
-
-  // Clear badge on focus
-  useEffect(() => {
-    const clear = () => {
-      unreadRef.current = 0;
-      if (navigator.clearAppBadge) navigator.clearAppBadge();
-    };
-    window.addEventListener('focus', clear);
-    return () => window.removeEventListener('focus', clear);
-  }, []);
+  }, [connected, activeChannelId, currentUser?.id, selectChannel, notify]);
 
   // Channel name display
   let channelDisplayName = '';
