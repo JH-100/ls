@@ -3,21 +3,29 @@ const path = require('path');
 
 // Server URL — reads from config.json next to exe, or argument, or default
 function getServerUrl() {
-  // 1. config.json next to exe
+  const fs = require('fs');
+  // 1. Mac: config.json next to .app bundle
+  if (process.platform === 'darwin') {
+    try {
+      const appBundlePath = path.resolve(path.dirname(process.execPath), '..', '..', '..');
+      const config = JSON.parse(fs.readFileSync(path.join(appBundlePath, 'config.json'), 'utf8'));
+      if (config.serverUrl) return config.serverUrl;
+    } catch {}
+  }
+  // 2. config.json next to exe (Windows portable)
   try {
-    const configPath = path.join(path.dirname(process.execPath), 'config.json');
-    const config = JSON.parse(require('fs').readFileSync(configPath, 'utf8'));
+    const config = JSON.parse(fs.readFileSync(path.join(path.dirname(process.execPath), 'config.json'), 'utf8'));
     if (config.serverUrl) return config.serverUrl;
   } catch {}
-  // 2. config.json in dev folder
+  // 3. config.json in dev folder
   try {
-    const config = JSON.parse(require('fs').readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
+    const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
     if (config.serverUrl) return config.serverUrl;
   } catch {}
-  // 3. Command line argument
+  // 4. Command line argument
   const arg = process.argv.find(a => a.startsWith('http'));
   if (arg) return arg;
-  // 4. Default
+  // 5. Default
   return 'http://localhost:3333';
 }
 const SERVER_URL = getServerUrl();
@@ -67,17 +75,18 @@ function updateBadge(count) {
       try {
         mainWindow.setOverlayIcon(createBadgeOverlay(count), `${count} unread`);
       } catch (e) {
-        // Fallback: flash taskbar
         mainWindow.flashFrame(true);
       }
     } else {
       mainWindow.setOverlayIcon(null, '');
       mainWindow.flashFrame(false);
     }
+  } else if (process.platform === 'darwin') {
+    app.dock.setBadge(count > 0 ? String(count) : '');
   }
 
   if (tray) {
-    tray.setToolTip(count > 0 ? `LikeSlack (${count}개 안 읽음)` : 'LikeSlack');
+    tray.setToolTip(count > 0 ? `KK (${count}개 안 읽음)` : 'KK');
   }
 }
 
@@ -85,7 +94,7 @@ function showNativeNotification(count) {
   if (!Notification.isSupported()) return;
 
   const notif = new Notification({
-    title: 'LikeSlack',
+    title: 'KK',
     body: `${count}개의 새 메시지가 있습니다`,
     icon: getIconPath(),
   });
@@ -106,7 +115,7 @@ function createWindow() {
     height: 850,
     minWidth: 800,
     minHeight: 600,
-    title: 'LikeSlack',
+    title: 'KK',
     icon: iconPath,
     autoHideMenuBar: true,
     show: false,
@@ -123,7 +132,7 @@ function createWindow() {
     mainWindow.show();
   });
 
-  // Watch title changes for badge — React sets "(N) LikeSlack" on unread
+  // Watch title changes for badge — React sets "(N) KK" on unread
   let prevCount = 0;
   mainWindow.on('page-title-updated', (e, title) => {
     const match = title.match(/^\((\d+)\)/);
@@ -166,9 +175,9 @@ function createTray() {
   }
 
   tray = new Tray(trayIcon);
-  tray.setToolTip('LikeSlack');
+  tray.setToolTip('KK');
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: 'LikeSlack 열기', click: () => { mainWindow?.show(); mainWindow?.focus(); } },
+    { label: 'KK 열기', click: () => { mainWindow?.show(); mainWindow?.focus(); } },
     { type: 'separator' },
     { label: '종료', click: () => { app.isQuitting = true; app.quit(); } },
   ]));
@@ -181,7 +190,7 @@ function createTray() {
 app.whenReady().then(() => {
   createWindow();
   createTray();
-  console.log(`LikeSlack Desktop connecting to: ${SERVER_URL}`);
+  console.log(`KK Desktop connecting to: ${SERVER_URL}`);
 });
 
 app.on('second-instance', () => {
@@ -194,4 +203,12 @@ app.on('second-instance', () => {
 
 app.on('window-all-closed', () => {
   // Don't quit — stay in tray
+});
+
+// Mac: reopen window when dock icon clicked
+app.on('activate', () => {
+  if (mainWindow) {
+    mainWindow.show();
+    mainWindow.focus();
+  }
 });
